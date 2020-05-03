@@ -1,9 +1,13 @@
 import axios from 'axios';
 import queryString from 'query-string';
+import { SERVER_PROXY_DEV, SERVER_PROXY_PROD } from '../config/env.js';
+
+let serverProxyUrl =
+	process.env.NODE_ENV === 'production' ? SERVER_PROXY_PROD : SERVER_PROXY_DEV;
 
 export function fetchGithubCode() {
 	return axios
-		.get('/gh-client')
+		.get(`${serverProxyUrl}/gh-client`)
 		.then((response) => {
 			if (response.status >= 200 || response.status < 300) {
 				return response.data;
@@ -16,13 +20,18 @@ export function fetchGithubCode() {
 
 export function fetchGithubUser(code) {
 	return axios
-		.post('/gh-token', { params: { code } })
-		.then((response) => fetchGithubToken(response.data))
+		.post(`${serverProxyUrl}/gh-token`, { params: { code } })
+		.then((response) => fetchWithToken(response.data))
 		.then((res) => res.data)
 		.catch((error) => console.log(error));
 }
 
-function fetchGithubToken(params) {
+function fetchWithToken(params) {
+	window.localStorage.setItem('gh-params', params);
+	return getUser(params);
+}
+
+export function getUser(params) {
 	const resParams = queryString.parse(params);
 	const url = `https://api.github.com/user?${resParams.scope}`;
 	const config = {
