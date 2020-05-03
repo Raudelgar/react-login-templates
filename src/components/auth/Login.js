@@ -1,35 +1,35 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Redirect } from 'react-router-dom';
 import queryString from 'query-string';
+import { useDispatch, useSelector } from 'react-redux';
+
 import GithubIcon from 'mdi-react/GithubIcon';
 import { LoginWrapper } from './LoginWrapper.js';
 import { fetchGithubCode, fetchGithubUser } from '../../api/api.js';
-import AuthContext from '../../context/AuthContext.js';
+import handleInitalData from '../../actions/rootAction.js';
 
 export default function Login(props) {
-	const { state, dispatch } = useContext(AuthContext);
 	const [isLoading, setLoading] = useState(false);
 	const [errorMessage, setErrorMessages] = useState('');
+	const dispatch = useDispatch();
+	const authUserId = useSelector((state) => state.authUserId);
 
 	useEffect(() => {
 		const { code } = queryString.parse(window.location.search);
-
 		if (code) {
-			//get access__token and user data
 			fetchGithubUser(code)
 				.then((res) => {
-					if (res) {
-						const user = {
-							avatar_url: res.avatar_url,
-							name: res.name,
-							public_repos: res.public_repos,
-							followers: res.followers,
-							following: res.following,
-							login: res.login,
-						};
-						dispatch({ type: 'LOGIN', payload: { user, isLoggedIn: true } });
-						return () => setLoading(false);
-					}
+					const user = {
+						avatar_url: res.avatar_url,
+						name: res.name,
+						public_repos: res.public_repos,
+						followers: res.followers,
+						following: res.following,
+						login: res.login,
+					};
+					dispatch(handleInitalData(user));
+
+					return () => setLoading(false);
 				})
 				.catch((error) => {
 					setErrorMessages(error);
@@ -39,7 +39,6 @@ export default function Login(props) {
 	}, [isLoading, dispatch]);
 
 	const handleUserLogin = () => {
-		console.log('user clicked to login');
 		setLoading(true);
 
 		fetchGithubCode().then((res) => {
@@ -57,7 +56,7 @@ export default function Login(props) {
 		});
 	};
 
-	if (state.user) {
+	if (authUserId) {
 		return <Redirect to='/' />;
 	}
 
@@ -84,7 +83,3 @@ export default function Login(props) {
 		</LoginWrapper>
 	);
 }
-
-/* 
-`https://github.com/login/oauth/authorize?scope=user&client_id=${client_id}&redirect_uri=${redirect_uri}`}
-*/
